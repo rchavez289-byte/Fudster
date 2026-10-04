@@ -1,1 +1,1102 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#2c3e2d">
+  <title>Fudster</title>
+
+  <style>
+    :root {
+      --bg: #1c241c;
+      --card: #2a332a;
+      --accent: #8b9a6d;
+      --accent-light: #aebc8d;
+      --text: #e8e6d9;
+      --muted: #a3a899;
+      --danger: #c45c4a;
+      --line: #3a453a;
+      --input: #1a211a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      background: var(--bg);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      margin-bottom: 3px;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin: 24px 0 12px;
+      color: var(--accent);
+    }
+
+    p.sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    textarea,
+    input,
+    select {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 9px;
+      background: var(--input);
+      color: var(--text);
+      font-size: 1rem;
+      margin-bottom: 10px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    textarea:focus,
+    input:focus,
+    select:focus {
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    button {
+      background: var(--accent);
+      color: #1c241c;
+      border: none;
+      padding: 13px 18px;
+      border-radius: 9px;
+      font-size: 1rem;
+      font-weight: 650;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 46px;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent-light);
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 7px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 11px 5px;
+      background: var(--card);
+      border-radius: 9px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #1c241c;
+      font-weight: 650;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .item:last-child {
+      border-bottom: none;
+    }
+
+    .item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-name {
+      font-weight: 550;
+      overflow-wrap: anywhere;
+    }
+
+    .item-meta {
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .wear-count {
+      font-size: 0.78rem;
+      color: var(--accent-light);
+      margin-top: 2px;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .item-actions button {
+      width: auto;
+      min-height: 38px;
+      padding: 7px 10px;
+      margin: 0;
+      font-size: 0.84rem;
+    }
+
+    .suggestion {
+      background: #243024;
+      border-left: 4px solid var(--accent);
+      padding: 13px;
+      margin: 8px 0;
+      border-radius: 0 9px 9px 0;
+    }
+
+    .suggestion strong {
+      color: var(--accent-light);
+    }
+
+    .outfit-header {
+      color: var(--accent-light);
+      font-weight: 650;
+      margin-bottom: 5px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #3a4635;
+      color: var(--accent-light);
+      border-radius: 20px;
+      padding: 4px 9px;
+      font-size: 0.75rem;
+      margin: 3px 3px 0 0;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 18px 5px;
+      color: var(--muted);
+    }
+
+    .hero-note {
+      background: #243024;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .stat {
+      background: #243024;
+      padding: 13px;
+      border-radius: 10px;
+    }
+
+    .stat-number {
+      font-size: 1.4rem;
+      color: var(--accent-light);
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Fudster</h1>
+  <p class="sub">Function first. Vintage outdoor soul. Small creative pops.</p>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="today">Today</div>
+    <div class="tab" data-tab="closet">Closet</div>
+    <div class="tab" data-tab="insights">Insights</div>
+  </div>
+
+  <!-- TODAY -->
+  <section id="today">
+
+    <div class="card">
+      <label class="small">Describe the day</label>
+
+      <textarea
+        id="dayDesc"
+        placeholder="38° and rainy, working outside most of the day"
+      ></textarea>
+
+      <button id="suggestButton">Build My Outfit</button>
+
+      <div class="hero-note">
+        Fudster will look at what you actually own and build around it.
+      </div>
+    </div>
+
+    <div id="suggestions"></div>
+
+  </section>
+
+  <!-- CLOSET -->
+  <section id="closet" class="hidden">
+
+    <div class="card">
+
+      <h2 style="margin-top:0">Add Item</h2>
+
+      <input
+        type="text"
+        id="itemName"
+        placeholder="Vintage LL Bean wool sweater"
+      >
+
+      <select id="itemCategory">
+        <option value="Top">Top</option>
+        <option value="Bottom">Bottom</option>
+        <option value="Outerwear">Outerwear</option>
+        <option value="Shoes">Shoes</option>
+        <option value="Accessory">Accessory</option>
+      </select>
+
+      <input
+        type="text"
+        id="itemColor"
+        placeholder="Color / notes — brown, camo, orange laces..."
+      >
+
+      <button id="addButton">Add to Closet</button>
+
+    </div>
+
+    <div id="closetList"></div>
+
+  </section>
+
+  <!-- INSIGHTS -->
+  <section id="insights" class="hidden">
+
+    <div class="card">
+
+      <h2 style="margin-top:0">Closet Snapshot</h2>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-number" id="itemCount">0</div>
+          <div class="stat-label">Pieces</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-number" id="totalWears">0</div>
+          <div class="stat-label">Total wears logged</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <h2 style="margin-top:0">Rarely Worn</h2>
+
+      <p class="small">
+        Pieces worn 0–1 times. These might deserve another chance.
+      </p>
+
+      <div id="rarelyWorn"></div>
+
+    </div>
+
+    <div class="card">
+
+      <h2>Most Worn</h2>
+
+      <div id="mostWorn"></div>
+
+    </div>
+
+  </section>
+
+
+<script>
+
+  /* ---------------------------------
+     DATA
+  --------------------------------- */
+
+  let closet = loadCloset();
+
+  function loadCloset() {
+    try {
+      return JSON.parse(
+        localStorage.getItem("fudsterCloset") || "[]"
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCloset() {
+    localStorage.setItem(
+      "fudsterCloset",
+      JSON.stringify(closet)
+    );
+
+    renderCloset();
+    renderInsights();
+  }
+
+
+  /* ---------------------------------
+     TABS
+  --------------------------------- */
+
+  document.querySelectorAll(".tab").forEach(tab => {
+
+    tab.addEventListener("click", () => {
+
+      const target = tab.dataset.tab;
+
+      document.querySelectorAll("section").forEach(section => {
+        section.classList.add("hidden");
+      });
+
+      document.getElementById(target).classList.remove("hidden");
+
+      document.querySelectorAll(".tab").forEach(t => {
+        t.classList.remove("active");
+      });
+
+      tab.classList.add("active");
+
+    });
+
+  });
+
+
+  /* ---------------------------------
+     ADD CLOSET ITEM
+  --------------------------------- */
+
+  document.getElementById("addButton").addEventListener("click", addItem);
+
+  function addItem() {
+
+    const name =
+      document.getElementById("itemName").value.trim();
+
+    const category =
+      document.getElementById("itemCategory").value;
+
+    const color =
+      document.getElementById("itemColor").value.trim();
+
+    if (!name) {
+      alert("Give the piece a name first.");
+      return;
+    }
+
+    closet.push({
+      id: Date.now(),
+      name,
+      category,
+      color,
+      wears: 0
+    });
+
+    document.getElementById("itemName").value = "";
+    document.getElementById("itemColor").value = "";
+
+    saveCloset();
+
+  }
+
+
+  /* ---------------------------------
+     WEAR / DELETE
+  --------------------------------- */
+
+  function wearItem(id) {
+
+    const item = closet.find(i => i.id === id);
+
+    if (!item) return;
+
+    item.wears++;
+
+    saveCloset();
+
+  }
+
+
+  function deleteItem(id) {
+
+    const item = closet.find(i => i.id === id);
+
+    if (!item) return;
+
+    if (
+      confirm(`Remove "${item.name}" from your closet?`)
+    ) {
+      closet = closet.filter(i => i.id !== id);
+      saveCloset();
+    }
+
+  }
+
+
+  /* ---------------------------------
+     RENDER CLOSET
+  --------------------------------- */
+
+  function renderCloset() {
+
+    const list =
+      document.getElementById("closetList");
+
+    if (!closet.length) {
+
+      list.innerHTML = `
+        <div class="card empty">
+          Your closet is empty.<br>
+          Add a few pieces and Fudster can start styling you.
+        </div>
+      `;
+
+      return;
+    }
+
+    const sorted = [...closet].sort((a, b) => {
+      return a.category.localeCompare(b.category);
+    });
+
+    list.innerHTML = sorted.map(item => `
+
+      <div class="card item">
+
+        <div class="item-info">
+
+          <div class="item-name">
+            ${escapeHTML(item.name)}
+          </div>
+
+          <div class="item-meta">
+            ${escapeHTML(item.category)}
+            ${item.color ? " · " + escapeHTML(item.color) : ""}
+          </div>
+
+          <div class="wear-count">
+            Worn ${item.wears} time${item.wears === 1 ? "" : "s"}
+          </div>
+
+        </div>
+
+        <div class="item-actions">
+
+          <button
+            class="secondary"
+            onclick="wearItem(${item.id})"
+          >
+            Wear
+          </button>
+
+          <button
+            class="danger"
+            onclick="deleteItem(${item.id})"
+          >
+            ×
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+  }
+
+
+  /* ---------------------------------
+     INSIGHTS
+  --------------------------------- */
+
+  function renderInsights() {
+
+    const itemCount =
+      document.getElementById("itemCount");
+
+    const totalWears =
+      document.getElementById("totalWears");
+
+    itemCount.textContent = closet.length;
+
+    totalWears.textContent =
+      closet.reduce((sum, item) => sum + item.wears, 0);
+
+
+    const rarely =
+      [...closet]
+        .filter(i => i.wears <= 1)
+        .sort((a, b) => a.wears - b.wears);
+
+    const most =
+      [...closet]
+        .sort((a, b) => b.wears - a.wears)
+        .slice(0, 5);
+
+
+    document.getElementById("rarelyWorn").innerHTML =
+      rarely.length
+
+        ? rarely.map(item => `
+
+            <div class="item">
+
+              <div>
+                ${escapeHTML(item.name)}
+                <span class="small">
+                  (${item.wears} wear${item.wears === 1 ? "" : "s"})
+                </span>
+              </div>
+
+            </div>
+
+          `).join("")
+
+        : `
+          <p class="small" style="margin-top:10px">
+            Nothing rarely worn right now.
+          </p>
+        `;
+
+
+    document.getElementById("mostWorn").innerHTML =
+      most.length
+
+        ? most.map(item => `
+
+            <div class="item">
+
+              <div>
+                ${escapeHTML(item.name)}
+                <span class="small">
+                  (${item.wears})
+                </span>
+              </div>
+
+            </div>
+
+          `).join("")
+
+        : `
+          <p class="small">
+            No wear data yet.
+          </p>
+        `;
+
+  }
+
+
+  /* ---------------------------------
+     OUTFIT ENGINE
+  --------------------------------- */
+
+  document
+    .getElementById("suggestButton")
+    .addEventListener("click", getSuggestions);
+
+
+  function getSuggestions() {
+
+    const desc =
+      document
+        .getElementById("dayDesc")
+        .value
+        .trim()
+        .toLowerCase();
+
+    const box =
+      document.getElementById("suggestions");
+
+
+    if (!desc) {
+
+      box.innerHTML = `
+        <div class="card">
+          <p class="small">
+            Tell me what the day looks like first.
+          </p>
+        </div>
+      `;
+
+      return;
+    }
+
+
+    if (!closet.length) {
+
+      box.innerHTML = `
+        <div class="card">
+
+          <h2 style="margin-top:0">
+            Your closet is waiting
+          </h2>
+
+          <p class="small">
+            Add some clothes in the Closet tab and
+            Fudster will build outfits from what you actually own.
+          </p>
+
+        </div>
+      `;
+
+      return;
+    }
+
+
+    const conditions = analyzeDay(desc);
+
+    const tops =
+      findItems("Top");
+
+    const bottoms =
+      findItems("Bottom");
+
+    const outerwear =
+      findItems("Outerwear");
+
+    const shoes =
+      findItems("Shoes");
+
+    const accessories =
+      findItems("Accessory");
+
+
+    const chosenTop =
+      chooseBest(tops, conditions);
+
+    const chosenBottom =
+      chooseBest(bottoms, conditions);
+
+    const chosenOuter =
+      chooseBest(outerwear, conditions);
+
+    const chosenShoes =
+      chooseBest(shoes, conditions);
+
+    const chosenAccessory =
+      chooseBest(accessories, conditions);
+
+
+    const outfit = [];
+
+    if (chosenTop) outfit.push(chosenTop);
+    if (chosenBottom) outfit.push(chosenBottom);
+    if (chosenOuter && (conditions.cold || conditions.wet))
+      outfit.push(chosenOuter);
+    if (chosenShoes) outfit.push(chosenShoes);
+    if (chosenAccessory && conditions.pop)
+      outfit.push(chosenAccessory);
+
+
+    const reasons = [];
+
+    if (conditions.cold)
+      reasons.push("warmth");
+
+    if (conditions.wet)
+      reasons.push("weather protection");
+
+    if (conditions.work)
+      reasons.push("durability");
+
+    if (conditions.casual)
+      reasons.push("easy everyday wear");
+
+    const reasonText =
+      reasons.length
+        ? reasons.join(", ")
+        : "versatility";
+
+
+    box.innerHTML = `
+
+      <div class="card">
+
+        <h2 style="margin-top:0">
+          Today's Fudster Fit
+        </h2>
+
+        <p class="small">
+          Built for ${escapeHTML(desc)}
+        </p>
+
+        <div style="margin-top:14px">
+
+          ${
+            outfit.length
+              ? outfit.map(item => `
+
+                  <div class="suggestion">
+
+                    <div class="outfit-header">
+                      ${escapeHTML(item.category)}
+                    </div>
+
+                    <div>
+                      ${escapeHTML(item.name)}
+                    </div>
+
+                    ${
+                      item.color
+                        ? `<span class="badge">
+                            ${escapeHTML(item.color)}
+                           </span>`
+                        : ""
+                    }
+
+                  </div>
+
+                `).join("")
+
+              : `
+                <div class="suggestion">
+                  I couldn't find enough pieces in your closet
+                  for a complete outfit yet.
+                </div>
+              `
+          }
+
+        </div>
+
+        <div class="hero-note">
+
+          <strong>Why this works:</strong>
+          I'm prioritizing ${reasonText},
+          while giving some love to pieces you haven't worn much.
+
+        </div>
+
+        ${
+          outfit.length
+            ? `
+              <button
+                id="logOutfitButton"
+                style="margin-top:12px"
+              >
+                I Wore This
+              </button>
+            `
+            : ""
+        }
+
+      </div>
+
+    `;
+
+
+    const logButton =
+      document.getElementById("logOutfitButton");
+
+    if (logButton) {
+
+      logButton.addEventListener("click", () => {
+
+        outfit.forEach(item => {
+
+          const actual =
+            closet.find(i => i.id === item.id);
+
+          if (actual) actual.wears++;
+
+        });
+
+        saveCloset();
+
+        logButton.textContent =
+          "✓ Outfit Logged";
+
+        logButton.disabled = true;
+
+      });
+
+    }
+
+  }
+
+
+  /* ---------------------------------
+     DAY ANALYSIS
+  --------------------------------- */
+
+  function analyzeDay(desc) {
+
+    const temperatureMatch =
+      desc.match(/(-?\d{1,3})\s*°?/);
+
+    const temperature =
+      temperatureMatch
+        ? parseInt(temperatureMatch[1])
+        : null;
+
+
+    const cold =
+      temperature !== null
+        ? temperature <= 45
+        : /cold|freezing|snow|frost|chilly|winter|ice/.test(desc);
+
+
+    const hot =
+      temperature !== null
+        ? temperature >= 75
+        : /hot|humid|heat|summer/.test(desc);
+
+
+    const wet =
+      /rain|rainy|wet|drizzle|storm|mud|snow/.test(desc);
+
+
+    const work =
+      /work|working|outside|job|shop|build|yard|farm|hike|hiking/.test(desc);
+
+
+    const casual =
+      /casual|town|errand|coffee|meet|dinner|date|weekend/.test(desc);
+
+
+    const pop =
+      /creative|fun|color|style|date|coffee|town|casual/.test(desc)
+      || !work;
+
+
+    return {
+      cold,
+      hot,
+      wet,
+      work,
+      casual,
+      pop
+    };
+
+  }
+
+
+  /* ---------------------------------
+     SMART ITEM SELECTION
+  --------------------------------- */
+
+  function findItems(category) {
+
+    return closet.filter(
+      item => item.category === category
+    );
+
+  }
+
+
+  function chooseBest(items, conditions) {
+
+    if (!items.length) return null;
+
+
+    const scored =
+      items.map(item => {
+
+        let score = 0;
+
+        const text =
+          `${item.name} ${item.color}`.toLowerCase();
+
+
+        /*
+          Weather clues
+        */
+
+        if (conditions.cold) {
+
+          if (
+            /wool|heavy|thermal|flannel|fleece|chamois|canvas|insulated|down|parka|coat/.test(text)
+          ) {
+            score += 5;
+          }
+
+        }
+
+
+        if (conditions.wet) {
+
+          if (
+            /wax|rain|waterproof|rubber|gore|boot|shell/.test(text)
+          ) {
+            score += 5;
+          }
+
+        }
+
+
+        if (conditions.work) {
+
+          if (
+            /canvas|work|boot|leather|denim|carhartt|dickies|field|chore|utility/.test(text)
+          ) {
+            score += 4;
+          }
+
+        }
+
+
+        /*
+          Fudster aesthetic
+        */
+
+        if (
+          /vintage|ll bean|eddie|patagonia|pendleton|filson|carhartt|orvis|wool|flannel|chamois|canvas|camo|field/.test(text)
+        ) {
+          score += 3;
+        }
+
+
+        /*
+          Creative color pop
+        */
+
+        if (
+          /orange|rust|red|yellow|pattern|camo|stripe/.test(text)
+        ) {
+          score += conditions.pop ? 2 : 0;
+        }
+
+
+        /*
+          Give neglected pieces a gentle boost.
+        */
+
+        if (item.wears === 0) {
+          score += 3;
+        } else if (item.wears === 1) {
+          score += 2;
+        }
+
+
+        /*
+          Small randomness prevents the same outfit
+          from appearing every single time.
+        */
+
+        score += Math.random() * 1.5;
+
+
+        return {
+          item,
+          score
+        };
+
+      });
+
+
+    scored.sort(
+      (a, b) => b.score - a.score
+    );
+
+
+    return scored[0].item;
+
+  }
+
+
+  /* ---------------------------------
+     SECURITY / DISPLAY HELPER
+  --------------------------------- */
+
+  function escapeHTML(value) {
+
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  /* ---------------------------------
+     STARTUP
+  --------------------------------- */
+
+  renderCloset();
+  renderInsights();
+
+</script>
+
+</body>
+</html>
