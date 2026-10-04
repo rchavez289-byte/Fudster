@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,6 +19,7 @@
       --danger: #c45c4a;
       --line: #3a453a;
       --input: #1a211a;
+      --warm: #b8794b;
     }
 
     * {
@@ -272,6 +272,45 @@
       font-size: 0.78rem;
       color: var(--muted);
     }
+
+    .style-score {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding: 11px 12px;
+      background: #202a20;
+      border-radius: 10px;
+    }
+
+    .style-score-number {
+      color: var(--accent-light);
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .why-list {
+      margin-top: 8px;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .why-list li {
+      margin-bottom: 4px;
+    }
+
+    .gap-card {
+      border-left-color: var(--warm);
+    }
+
+    .section-label {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
   </style>
 </head>
 
@@ -286,10 +325,13 @@
     <div class="tab" data-tab="insights">Insights</div>
   </div>
 
+
   <!-- TODAY -->
+
   <section id="today">
 
     <div class="card">
+
       <label class="small">Describe the day</label>
 
       <textarea
@@ -300,15 +342,19 @@
       <button id="suggestButton">Build My Outfit</button>
 
       <div class="hero-note">
-        Fudster will look at what you actually own and build around it.
+        Fudster looks at your clothes, color, weather, wear history,
+        and Fudd style before choosing.
       </div>
+
     </div>
 
     <div id="suggestions"></div>
 
   </section>
 
+
   <!-- CLOSET -->
+
   <section id="closet" class="hidden">
 
     <div class="card">
@@ -332,10 +378,15 @@
       <input
         type="text"
         id="itemColor"
-        placeholder="Color / notes — brown, camo, orange laces..."
+        placeholder="Color / notes — rust, faded olive, cream..."
       >
 
       <button id="addButton">Add to Closet</button>
+
+      <div class="hero-note">
+        Keep it simple. Fudster will infer color family, warmth,
+        material, aesthetic, and other useful traits from what you type.
+      </div>
 
     </div>
 
@@ -343,7 +394,9 @@
 
   </section>
 
+
   <!-- INSIGHTS -->
+
   <section id="insights" class="hidden">
 
     <div class="card">
@@ -351,6 +404,7 @@
       <h2 style="margin-top:0">Closet Snapshot</h2>
 
       <div class="stat-grid">
+
         <div class="stat">
           <div class="stat-number" id="itemCount">0</div>
           <div class="stat-label">Pieces</div>
@@ -360,21 +414,25 @@
           <div class="stat-number" id="totalWears">0</div>
           <div class="stat-label">Total wears logged</div>
         </div>
+
       </div>
 
     </div>
+
 
     <div class="card">
 
       <h2 style="margin-top:0">Rarely Worn</h2>
 
       <p class="small">
-        Pieces worn 0–1 times. These might deserve another chance.
+        Pieces worn 0–1 times. Fudster will try to use these when they
+        genuinely fit the outfit.
       </p>
 
       <div id="rarelyWorn"></div>
 
     </div>
+
 
     <div class="card">
 
@@ -384,717 +442,2683 @@
 
     </div>
 
+
+    <div class="card">
+
+      <h2 style="margin-top:0">Closet Opportunities</h2>
+
+      <p class="small">
+        These aren't random shopping suggestions. They are pieces that
+        could unlock combinations your current closet is missing.
+      </p>
+
+      <div id="closetGaps"></div>
+
+    </div>
+
   </section>
 
 
 <script>
 
-  /* ---------------------------------
-     DATA
-  --------------------------------- */
 
-  let closet = loadCloset();
+/* ============================================================
+   DATA
+============================================================ */
 
-  function loadCloset() {
-    try {
-      return JSON.parse(
-        localStorage.getItem("fudsterCloset") || "[]"
-      );
-    } catch {
-      return [];
-    }
-  }
-
-  function saveCloset() {
-    localStorage.setItem(
-      "fudsterCloset",
-      JSON.stringify(closet)
-    );
-
-    renderCloset();
-    renderInsights();
-  }
+let closet = loadCloset();
 
 
-  /* ---------------------------------
-     TABS
-  --------------------------------- */
+function loadCloset() {
 
-  document.querySelectorAll(".tab").forEach(tab => {
+  try {
 
-    tab.addEventListener("click", () => {
+    const saved =
+      JSON.parse(localStorage.getItem("fudsterCloset") || "[]");
 
-      const target = tab.dataset.tab;
+    /*
+      Older Fudster items did not have inferred attributes.
+      We preserve them and enrich them automatically.
+    */
 
-      document.querySelectorAll("section").forEach(section => {
-        section.classList.add("hidden");
-      });
+    return saved.map(item => {
 
-      document.getElementById(target).classList.remove("hidden");
+      const inferred =
+        inferItemAttributes(
+          `${item.name || ""} ${item.color || ""}`,
+          item.category
+        );
 
-      document.querySelectorAll(".tab").forEach(t => {
-        t.classList.remove("active");
-      });
-
-      tab.classList.add("active");
+      return {
+        ...item,
+        ...inferred
+      };
 
     });
+
+  } catch {
+
+    return [];
+
+  }
+
+}
+
+
+function saveCloset() {
+
+  localStorage.setItem(
+    "fudsterCloset",
+    JSON.stringify(closet)
+  );
+
+  renderCloset();
+  renderInsights();
+
+}
+
+
+/* ============================================================
+   TABS
+============================================================ */
+
+document.querySelectorAll(".tab").forEach(tab => {
+
+  tab.addEventListener("click", () => {
+
+    const target = tab.dataset.tab;
+
+    document.querySelectorAll("section").forEach(section => {
+      section.classList.add("hidden");
+    });
+
+    document
+      .getElementById(target)
+      .classList.remove("hidden");
+
+    document.querySelectorAll(".tab").forEach(t => {
+      t.classList.remove("active");
+    });
+
+    tab.classList.add("active");
+
+  });
+
+});
+
+
+/* ============================================================
+   ADD ITEM
+============================================================ */
+
+document
+  .getElementById("addButton")
+  .addEventListener("click", addItem);
+
+
+function addItem() {
+
+  const name =
+    document
+      .getElementById("itemName")
+      .value
+      .trim();
+
+  const category =
+    document
+      .getElementById("itemCategory")
+      .value;
+
+  const color =
+    document
+      .getElementById("itemColor")
+      .value
+      .trim();
+
+  if (!name) {
+
+    alert("Give the piece a name first.");
+    return;
+
+  }
+
+
+  const inferred =
+    inferItemAttributes(
+      `${name} ${color}`,
+      category
+    );
+
+
+  closet.push({
+
+    id: Date.now(),
+
+    name,
+
+    category,
+
+    color,
+
+    wears: 0,
+
+    lastWorn: null,
+
+    ...inferred
 
   });
 
 
-  /* ---------------------------------
-     ADD CLOSET ITEM
-  --------------------------------- */
+  document.getElementById("itemName").value = "";
+  document.getElementById("itemColor").value = "";
 
-  document.getElementById("addButton").addEventListener("click", addItem);
+  saveCloset();
 
-  function addItem() {
-
-    const name =
-      document.getElementById("itemName").value.trim();
-
-    const category =
-      document.getElementById("itemCategory").value;
-
-    const color =
-      document.getElementById("itemColor").value.trim();
-
-    if (!name) {
-      alert("Give the piece a name first.");
-      return;
-    }
-
-    closet.push({
-      id: Date.now(),
-      name,
-      category,
-      color,
-      wears: 0
-    });
-
-    document.getElementById("itemName").value = "";
-    document.getElementById("itemColor").value = "";
-
-    saveCloset();
-
-  }
+}
 
 
-  /* ---------------------------------
-     WEAR / DELETE
-  --------------------------------- */
+/* ============================================================
+   WEAR / DELETE
+============================================================ */
 
-  function wearItem(id) {
+function wearItem(id) {
 
-    const item = closet.find(i => i.id === id);
+  const item =
+    closet.find(i => i.id === id);
 
-    if (!item) return;
+  if (!item) return;
 
-    item.wears++;
+  item.wears++;
+
+  item.lastWorn =
+    Date.now();
+
+  saveCloset();
+
+}
+
+
+function deleteItem(id) {
+
+  const item =
+    closet.find(i => i.id === id);
+
+  if (!item) return;
+
+  if (
+    confirm(`Remove "${item.name}" from your closet?`)
+  ) {
+
+    closet =
+      closet.filter(i => i.id !== id);
 
     saveCloset();
 
   }
 
+}
 
-  function deleteItem(id) {
 
-    const item = closet.find(i => i.id === id);
+/* ============================================================
+   ITEM INTELLIGENCE
+============================================================ */
 
-    if (!item) return;
+function inferItemAttributes(text, category) {
 
-    if (
-      confirm(`Remove "${item.name}" from your closet?`)
-    ) {
-      closet = closet.filter(i => i.id !== id);
-      saveCloset();
-    }
+  const t =
+    text
+      .toLowerCase()
+      .replace(/[-_]/g, " ");
 
+
+  const colors = detectColors(t);
+
+  const materials = detectMaterials(t);
+
+  const styleTags = detectStyle(t);
+
+  let warmth = 2;
+
+  if (
+    /wool|heavy|thick|thermal|fleece|down|insulated|parka|coat|shearling/.test(t)
+  ) {
+    warmth = 5;
+  } else if (
+    /flannel|chamois|canvas|corduroy|sweater|sweatshirt|hoodie|waxed/.test(t)
+  ) {
+    warmth = 4;
+  } else if (
+    /linen|seersucker|lightweight|light weight|short sleeve|mesh|summer/.test(t)
+  ) {
+    warmth = 1;
   }
 
 
-  /* ---------------------------------
-     RENDER CLOSET
-  --------------------------------- */
+  const rain =
+    /waxed|wax|waterproof|rain|gore tex|gore-tex|shell|rubber|water resistant|water-resistant/.test(t)
+      ? 5
+      : /leather|canvas|nylon/.test(t)
+        ? 2
+        : 1;
 
-  function renderCloset() {
 
-    const list =
-      document.getElementById("closetList");
+  let formality = "casual";
 
-    if (!closet.length) {
-
-      list.innerHTML = `
-        <div class="card empty">
-          Your closet is empty.<br>
-          Add a few pieces and Fudster can start styling you.
-        </div>
-      `;
-
-      return;
-    }
-
-    const sorted = [...closet].sort((a, b) => {
-      return a.category.localeCompare(b.category);
-    });
-
-    list.innerHTML = sorted.map(item => `
-
-      <div class="card item">
-
-        <div class="item-info">
-
-          <div class="item-name">
-            ${escapeHTML(item.name)}
-          </div>
-
-          <div class="item-meta">
-            ${escapeHTML(item.category)}
-            ${item.color ? " · " + escapeHTML(item.color) : ""}
-          </div>
-
-          <div class="wear-count">
-            Worn ${item.wears} time${item.wears === 1 ? "" : "s"}
-          </div>
-
-        </div>
-
-        <div class="item-actions">
-
-          <button
-            class="secondary"
-            onclick="wearItem(${item.id})"
-          >
-            Wear
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteItem(${item.id})"
-          >
-            ×
-          </button>
-
-        </div>
-
-      </div>
-
-    `).join("");
-
+  if (
+    /dress|blazer|oxford|loafer|trouser|chino|button down|button-down/.test(t)
+  ) {
+    formality = "smart-casual";
   }
 
 
-  /* ---------------------------------
-     INSIGHTS
-  --------------------------------- */
-
-  function renderInsights() {
-
-    const itemCount =
-      document.getElementById("itemCount");
-
-    const totalWears =
-      document.getElementById("totalWears");
-
-    itemCount.textContent = closet.length;
-
-    totalWears.textContent =
-      closet.reduce((sum, item) => sum + item.wears, 0);
+  const garmentType =
+    category === "Top"
+      ? detectTopType(t)
+      : category === "Bottom"
+        ? detectBottomType(t)
+        : category === "Outerwear"
+          ? detectOuterType(t)
+          : category === "Shoes"
+            ? detectShoeType(t)
+            : "accessory";
 
 
-    const rarely =
-      [...closet]
-        .filter(i => i.wears <= 1)
-        .sort((a, b) => a.wears - b.wears);
+  return {
 
-    const most =
-      [...closet]
-        .sort((a, b) => b.wears - a.wears)
-        .slice(0, 5);
+    colorFamily:
+      colors.primary,
+
+    secondaryColor:
+      colors.secondary,
+
+    colorTemperature:
+      colors.temperature,
+
+    saturation:
+      colors.saturation,
+
+    muted:
+      colors.muted,
+
+    earthTone:
+      colors.earthTone,
+
+    neutral:
+      colors.neutral,
+
+    palette:
+      colors.palette,
+
+    materials,
+
+    styleTags,
+
+    warmth,
+
+    rainSuitability:
+      rain,
+
+    formality,
+
+    garmentType
+
+  };
+
+}
 
 
-    document.getElementById("rarelyWorn").innerHTML =
-      rarely.length
+/* ============================================================
+   COLOR INTELLIGENCE
+============================================================ */
 
-        ? rarely.map(item => `
+const COLOR_DATA = {
 
-            <div class="item">
+  rust: {
+    family: "rust",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-              <div>
-                ${escapeHTML(item.name)}
-                <span class="small">
-                  (${item.wears} wear${item.wears === 1 ? "" : "s"})
-                </span>
-              </div>
+  orange: {
+    family: "orange",
+    temperature: "warm",
+    saturation: "strong",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-            </div>
+  terracotta: {
+    family: "rust",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-          `).join("")
+  olive: {
+    family: "olive",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-        : `
-          <p class="small" style="margin-top:10px">
-            Nothing rarely worn right now.
-          </p>
-        `;
+  green: {
+    family: "green",
+    temperature: "cool",
+    saturation: "medium",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
+  sage: {
+    family: "sage",
+    temperature: "cool",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-    document.getElementById("mostWorn").innerHTML =
-      most.length
+  forest: {
+    family: "green",
+    temperature: "cool",
+    saturation: "deep",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-        ? most.map(item => `
+  brown: {
+    family: "brown",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-            <div class="item">
+  tan: {
+    family: "tan",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-              <div>
-                ${escapeHTML(item.name)}
-                <span class="small">
-                  (${item.wears})
-                </span>
-              </div>
+  khaki: {
+    family: "tan",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-            </div>
+  camel: {
+    family: "tan",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
 
-          `).join("")
+  cream: {
+    family: "cream",
+    temperature: "warm",
+    saturation: "muted",
+    earth: false,
+    neutral: true,
+    palette: "neutral"
+  },
 
-        : `
-          <p class="small">
-            No wear data yet.
-          </p>
-        `;
+  oatmeal: {
+    family: "cream",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: true,
+    palette: "earth"
+  },
 
+  beige: {
+    family: "tan",
+    temperature: "warm",
+    saturation: "muted",
+    earth: true,
+    neutral: true,
+    palette: "earth"
+  },
+
+  gray: {
+    family: "gray",
+    temperature: "cool",
+    saturation: "muted",
+    earth: false,
+    neutral: true,
+    palette: "neutral"
+  },
+
+  grey: {
+    family: "gray",
+    temperature: "cool",
+    saturation: "muted",
+    earth: false,
+    neutral: true,
+    palette: "neutral"
+  },
+
+  charcoal: {
+    family: "charcoal",
+    temperature: "cool",
+    saturation: "deep",
+    earth: false,
+    neutral: true,
+    palette: "neutral"
+  },
+
+  black: {
+    family: "black",
+    temperature: "cool",
+    saturation: "deep",
+    earth: false,
+    neutral: true,
+    palette: "neutral"
+  },
+
+  white: {
+    family: "white",
+    temperature: "cool",
+    saturation: "muted",
+    earth: false,
+    neutral: true,
+    palette: "neutral"
+  },
+
+  navy: {
+    family: "navy",
+    temperature: "cool",
+    saturation: "deep",
+    earth: false,
+    neutral: false,
+    palette: "classic"
+  },
+
+  blue: {
+    family: "blue",
+    temperature: "cool",
+    saturation: "medium",
+    earth: false,
+    neutral: false,
+    palette: "classic"
+  },
+
+  denim: {
+    family: "blue",
+    temperature: "cool",
+    saturation: "muted",
+    earth: false,
+    neutral: false,
+    palette: "classic"
+  },
+
+  red: {
+    family: "red",
+    temperature: "warm",
+    saturation: "strong",
+    earth: false,
+    neutral: false,
+    palette: "accent"
+  },
+
+  burgundy: {
+    family: "burgundy",
+    temperature: "warm",
+    saturation: "deep",
+    earth: true,
+    neutral: false,
+    palette: "earth"
+  },
+
+  yellow: {
+    family: "yellow",
+    temperature: "warm",
+    saturation: "strong",
+    earth: false,
+    neutral: false,
+    palette: "accent"
+  },
+
+  purple: {
+    family: "purple",
+    temperature: "cool",
+    saturation: "strong",
+    earth: false,
+    neutral: false,
+    palette: "accent"
   }
 
-
-  /* ---------------------------------
-     OUTFIT ENGINE
-  --------------------------------- */
-
-  document
-    .getElementById("suggestButton")
-    .addEventListener("click", getSuggestions);
+};
 
 
-  function getSuggestions() {
+function detectColors(text) {
 
-    const desc =
-      document
-        .getElementById("dayDesc")
-        .value
-        .trim()
-        .toLowerCase();
+  const found = [];
 
-    const box =
-      document.getElementById("suggestions");
+  Object.keys(COLOR_DATA).forEach(color => {
 
-
-    if (!desc) {
-
-      box.innerHTML = `
-        <div class="card">
-          <p class="small">
-            Tell me what the day looks like first.
-          </p>
-        </div>
-      `;
-
-      return;
+    if (text.includes(color)) {
+      found.push(color);
     }
 
+  });
 
-    if (!closet.length) {
 
-      box.innerHTML = `
-        <div class="card">
-
-          <h2 style="margin-top:0">
-            Your closet is waiting
-          </h2>
-
-          <p class="small">
-            Add some clothes in the Closet tab and
-            Fudster will build outfits from what you actually own.
-          </p>
-
-        </div>
-      `;
-
-      return;
-    }
-
-
-    const conditions = analyzeDay(desc);
-
-    const tops =
-      findItems("Top");
-
-    const bottoms =
-      findItems("Bottom");
-
-    const outerwear =
-      findItems("Outerwear");
-
-    const shoes =
-      findItems("Shoes");
-
-    const accessories =
-      findItems("Accessory");
-
-
-    const chosenTop =
-      chooseBest(tops, conditions);
-
-    const chosenBottom =
-      chooseBest(bottoms, conditions);
-
-    const chosenOuter =
-      chooseBest(outerwear, conditions);
-
-    const chosenShoes =
-      chooseBest(shoes, conditions);
-
-    const chosenAccessory =
-      chooseBest(accessories, conditions);
-
-
-    const outfit = [];
-
-    if (chosenTop) outfit.push(chosenTop);
-    if (chosenBottom) outfit.push(chosenBottom);
-    if (chosenOuter && (conditions.cold || conditions.wet))
-      outfit.push(chosenOuter);
-    if (chosenShoes) outfit.push(chosenShoes);
-    if (chosenAccessory && conditions.pop)
-      outfit.push(chosenAccessory);
-
-
-    const reasons = [];
-
-    if (conditions.cold)
-      reasons.push("warmth");
-
-    if (conditions.wet)
-      reasons.push("weather protection");
-
-    if (conditions.work)
-      reasons.push("durability");
-
-    if (conditions.casual)
-      reasons.push("easy everyday wear");
-
-    const reasonText =
-      reasons.length
-        ? reasons.join(", ")
-        : "versatility";
-
-
-    box.innerHTML = `
-
-      <div class="card">
-
-        <h2 style="margin-top:0">
-          Today's Fudster Fit
-        </h2>
-
-        <p class="small">
-          Built for ${escapeHTML(desc)}
-        </p>
-
-        <div style="margin-top:14px">
-
-          ${
-            outfit.length
-              ? outfit.map(item => `
-
-                  <div class="suggestion">
-
-                    <div class="outfit-header">
-                      ${escapeHTML(item.category)}
-                    </div>
-
-                    <div>
-                      ${escapeHTML(item.name)}
-                    </div>
-
-                    ${
-                      item.color
-                        ? `<span class="badge">
-                            ${escapeHTML(item.color)}
-                           </span>`
-                        : ""
-                    }
-
-                  </div>
-
-                `).join("")
-
-              : `
-                <div class="suggestion">
-                  I couldn't find enough pieces in your closet
-                  for a complete outfit yet.
-                </div>
-              `
-          }
-
-        </div>
-
-        <div class="hero-note">
-
-          <strong>Why this works:</strong>
-          I'm prioritizing ${reasonText},
-          while giving some love to pieces you haven't worn much.
-
-        </div>
-
-        ${
-          outfit.length
-            ? `
-              <button
-                id="logOutfitButton"
-                style="margin-top:12px"
-              >
-                I Wore This
-              </button>
-            `
-            : ""
-        }
-
-      </div>
-
-    `;
-
-
-    const logButton =
-      document.getElementById("logOutfitButton");
-
-    if (logButton) {
-
-      logButton.addEventListener("click", () => {
-
-        outfit.forEach(item => {
-
-          const actual =
-            closet.find(i => i.id === item.id);
-
-          if (actual) actual.wears++;
-
-        });
-
-        saveCloset();
-
-        logButton.textContent =
-          "✓ Outfit Logged";
-
-        logButton.disabled = true;
-
-      });
-
-    }
-
-  }
-
-
-  /* ---------------------------------
-     DAY ANALYSIS
-  --------------------------------- */
-
-  function analyzeDay(desc) {
-
-    const temperatureMatch =
-      desc.match(/(-?\d{1,3})\s*°?/);
-
-    const temperature =
-      temperatureMatch
-        ? parseInt(temperatureMatch[1])
-        : null;
-
-
-    const cold =
-      temperature !== null
-        ? temperature <= 45
-        : /cold|freezing|snow|frost|chilly|winter|ice/.test(desc);
-
-
-    const hot =
-      temperature !== null
-        ? temperature >= 75
-        : /hot|humid|heat|summer/.test(desc);
-
-
-    const wet =
-      /rain|rainy|wet|drizzle|storm|mud|snow/.test(desc);
-
-
-    const work =
-      /work|working|outside|job|shop|build|yard|farm|hike|hiking/.test(desc);
-
-
-    const casual =
-      /casual|town|errand|coffee|meet|dinner|date|weekend/.test(desc);
-
-
-    const pop =
-      /creative|fun|color|style|date|coffee|town|casual/.test(desc)
-      || !work;
-
+  if (!found.length) {
 
     return {
-      cold,
-      hot,
-      wet,
-      work,
-      casual,
-      pop
+
+      primary: "unknown",
+      secondary: null,
+      temperature: "neutral",
+      saturation: "medium",
+      muted: false,
+      earthTone: false,
+      neutral: false,
+      palette: "unknown"
+
     };
 
   }
 
 
-  /* ---------------------------------
-     SMART ITEM SELECTION
-  --------------------------------- */
+  const first =
+    COLOR_DATA[found[0]];
 
-  function findItems(category) {
 
-    return closet.filter(
-      item => item.category === category
+  return {
+
+    primary: first.family,
+
+    secondary:
+      found.length > 1
+        ? COLOR_DATA[found[1]].family
+        : null,
+
+    temperature:
+      first.temperature,
+
+    saturation:
+      first.saturation,
+
+    muted:
+      first.saturation === "muted",
+
+    earthTone:
+      first.earth,
+
+    neutral:
+      first.neutral,
+
+    palette:
+      first.palette
+
+  };
+
+}
+
+
+/* ============================================================
+   MATERIAL / STYLE DETECTION
+============================================================ */
+
+function detectMaterials(text) {
+
+  const list = [];
+
+  const materialMap = {
+
+    wool: /wool/,
+    flannel: /flannel/,
+    canvas: /canvas/,
+    leather: /leather/,
+    denim: /denim|jean/,
+    waxedCotton: /waxed|wax cotton/,
+    cotton: /cotton/,
+    corduroy: /corduroy|cord/,
+    nylon: /nylon/,
+    fleece: /fleece/,
+    down: /down/,
+    linen: /linen/,
+    suede: /suede/
+
+  };
+
+
+  Object.entries(materialMap).forEach(([name, regex]) => {
+
+    if (regex.test(text)) {
+      list.push(name);
+    }
+
+  });
+
+
+  return list;
+
+}
+
+
+function detectStyle(text) {
+
+  const tags = [];
+
+  const styleMap = {
+
+    vintage: /vintage|heritage|old school|retro/,
+    outdoor: /outdoor|hiking|camp|trail|field|fishing|hunting/,
+    workwear: /workwear|work wear|work|chore|utility|mechanic|shop|job/,
+    rugged: /rugged|heavy duty|heavy-duty|durable/,
+    classic: /classic|traditional|heritage/,
+    western: /western|cowboy|ranch/,
+    preppy: /prep|preppy|ivy|rugby/,
+    military: /military|m65|field jacket|fatigue|camo|camouflage/,
+    minimal: /minimal|simple|plain/,
+    playful: /fun|colorful|bright|graphic|pattern/
+
+  };
+
+
+  Object.entries(styleMap).forEach(([name, regex]) => {
+
+    if (regex.test(text)) {
+      tags.push(name);
+    }
+
+  });
+
+
+  /*
+    Materials themselves are style signals.
+  */
+
+  if (/wool|flannel|canvas|waxed|leather|chamois/.test(text)) {
+    tags.push("heritage");
+  }
+
+
+  return [...new Set(tags)];
+
+}
+
+
+function detectTopType(text) {
+
+  if (/sweater|pullover|crewneck|cardigan|knit/.test(text))
+    return "sweater";
+
+  if (/flannel|shirt|oxford|button/.test(text))
+    return "shirt";
+
+  if (/tee|t shirt|t-shirt/.test(text))
+    return "tee";
+
+  if (/hoodie|sweatshirt/.test(text))
+    return "sweatshirt";
+
+  return "top";
+
+}
+
+
+function detectBottomType(text) {
+
+  if (/jean|denim/.test(text))
+    return "jeans";
+
+  if (/chino/.test(text))
+    return "chinos";
+
+  if (/corduroy|cord/.test(text))
+    return "corduroy";
+
+  if (/short/.test(text))
+    return "shorts";
+
+  if (/cargo|fatigue|utility/.test(text))
+    return "utility pants";
+
+  return "pants";
+
+}
+
+
+function detectOuterType(text) {
+
+  if (/waxed|barn|field|chore/.test(text))
+    return "heritage jacket";
+
+  if (/parka/.test(text))
+    return "parka";
+
+  if (/coat|overcoat/.test(text))
+    return "coat";
+
+  if (/vest|gilet/.test(text))
+    return "vest";
+
+  return "jacket";
+
+}
+
+
+function detectShoeType(text) {
+
+  if (/boot|red wing|wolverine|danner/.test(text))
+    return "boots";
+
+  if (/loafer/.test(text))
+    return "loafer";
+
+  if (/sneaker|trainer/.test(text))
+    return "sneakers";
+
+  return "shoes";
+
+}
+
+
+/* ============================================================
+   DAY ANALYSIS
+============================================================ */
+
+function analyzeDay(desc) {
+
+  const temperatureMatch =
+    desc.match(/(-?\d{1,3})\s*°?/);
+
+  const temperature =
+    temperatureMatch
+      ? parseInt(temperatureMatch[1])
+      : null;
+
+
+  const cold =
+    temperature !== null
+      ? temperature <= 45
+      : /cold|freezing|snow|frost|chilly|winter|ice/.test(desc);
+
+
+  const cool =
+    temperature !== null
+      ? temperature > 45 && temperature < 65
+      : /cool|crisp|fall|autumn|spring/.test(desc);
+
+
+  const hot =
+    temperature !== null
+      ? temperature >= 75
+      : /hot|humid|heat|summer/.test(desc);
+
+
+  const wet =
+    /rain|rainy|wet|drizzle|storm|mud|snow|sleet/.test(desc);
+
+
+  const outside =
+    /outside|outdoors|yard|farm|field|trail|hike|hiking|camp|garden/.test(desc);
+
+
+  const work =
+    /work|working|job|shop|build|building|construction|yard|farm|mechanic/.test(desc);
+
+
+  const active =
+    /hike|hiking|walk|walking|work|working|yard|farm|trail|active/.test(desc);
+
+
+  const casual =
+    /casual|town|errand|coffee|dinner|date|weekend|relax/.test(desc);
+
+
+  const smart =
+    /office|meeting|client|business|dress|formal|wedding/.test(desc);
+
+
+  const pop =
+    /creative|fun|color|style|date|coffee|town|casual/.test(desc)
+    || !work;
+
+
+  return {
+
+    temperature,
+
+    cold,
+    cool,
+    hot,
+    wet,
+
+    outside,
+    work,
+    active,
+
+    casual,
+    smart,
+
+    pop
+
+  };
+
+}
+
+
+/* ============================================================
+   OUTFIT ENGINE
+============================================================ */
+
+document
+  .getElementById("suggestButton")
+  .addEventListener("click", getSuggestions);
+
+
+function getSuggestions() {
+
+  const desc =
+    document
+      .getElementById("dayDesc")
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const box =
+    document.getElementById("suggestions");
+
+
+  if (!desc) {
+
+    box.innerHTML = `
+      <div class="card">
+        <p class="small">
+          Tell me what the day looks like first.
+        </p>
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  if (!closet.length) {
+
+    box.innerHTML = `
+      <div class="card">
+
+        <h2 style="margin-top:0">
+          Your closet is waiting
+        </h2>
+
+        <p class="small">
+          Add some clothes in the Closet tab and
+          Fudster will start learning your wardrobe.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  const conditions =
+    analyzeDay(desc);
+
+
+  const outfit =
+    buildBestOutfit(conditions);
+
+
+  renderOutfit(outfit, conditions, desc);
+
+}
+
+
+/* ============================================================
+   BUILD COMPLETE OUTFIT
+============================================================ */
+
+function buildBestOutfit(conditions) {
+
+  const tops =
+    findItems("Top");
+
+  const bottoms =
+    findItems("Bottom");
+
+  const outerwear =
+    findItems("Outerwear");
+
+  const shoes =
+    findItems("Shoes");
+
+  const accessories =
+    findItems("Accessory");
+
+
+  let best = null;
+
+
+  /*
+    Instead of independently choosing one top and one bottom,
+    evaluate combinations.
+
+    This is the major change from the old engine.
+  */
+
+  const possibleTops =
+    tops.length
+      ? tops
+      : [null];
+
+  const possibleBottoms =
+    bottoms.length
+      ? bottoms
+      : [null];
+
+  const possibleOuterwear =
+    outerwear.length
+      ? outerwear
+      : [null];
+
+  const possibleShoes =
+    shoes.length
+      ? shoes
+      : [null];
+
+
+  for (const top of possibleTops) {
+
+    for (const bottom of possibleBottoms) {
+
+      for (const outer of possibleOuterwear) {
+
+        for (const shoe of possibleShoes) {
+
+          const baseItems =
+            [top, bottom, outer, shoe]
+              .filter(Boolean);
+
+
+          if (!baseItems.length)
+            continue;
+
+
+          /*
+            Don't automatically require outerwear.
+            It is included when the weather and outfit make sense.
+          */
+
+          if (
+            outer &&
+            !conditions.cold &&
+            !conditions.cool &&
+            !conditions.wet
+          ) {
+            continue;
+          }
+
+
+          const score =
+            scoreOutfit(
+              baseItems,
+              conditions
+            );
+
+
+          if (
+            !best ||
+            score.total > best.score
+          ) {
+
+            best = {
+
+              items: baseItems,
+              score: score.total,
+              details: score
+
+            };
+
+          }
+
+        }
+
+      }
+
+    }
+
+  }
+
+
+  if (!best)
+    return {
+      items: [],
+      score: 0,
+      details: {}
+    };
+
+
+  /*
+    Accessories are selected after the core outfit.
+    This keeps them from dominating the color logic.
+  */
+
+  if (
+    accessories.length &&
+    (conditions.pop || Math.random() > 0.45)
+  ) {
+
+    const ranked =
+      accessories
+        .map(item => ({
+
+          item,
+
+          score:
+            scoreAccessory(
+              item,
+              best.items,
+              conditions
+            )
+
+        }))
+        .sort((a, b) => b.score - a.score);
+
+
+    if (
+      ranked.length &&
+      ranked[0].score > 0
+    ) {
+
+      best.items.push(
+        ranked[0].item
+      );
+
+    }
+
+  }
+
+
+  return best;
+
+}
+
+
+/* ============================================================
+   OUTFIT SCORING
+============================================================ */
+
+function scoreOutfit(items, conditions) {
+
+  let total = 0;
+
+  let color = 0;
+  let style = 0;
+  let weather = 0;
+  let garment = 0;
+  let wear = 0;
+
+
+  /*
+    COLOR HARMONY
+  */
+
+  color =
+    scoreColorHarmony(items);
+
+
+  total += color * 0.28;
+
+
+  /*
+    FUDD STYLE
+
+    This is intentionally a major component.
+
+    We want Fudster to have a point of view,
+    not simply maximize keyword matches.
+  */
+
+  style =
+    scoreFuddStyle(items);
+
+
+  total += style * 0.32;
+
+
+  /*
+    WEATHER / FUNCTION
+  */
+
+  weather =
+    scoreWeather(items, conditions);
+
+
+  total += weather * 0.18;
+
+
+  /*
+    GARMENT / TEXTURE COMPATIBILITY
+  */
+
+  garment =
+    scoreGarmentCompatibility(items);
+
+
+  total += garment * 0.10;
+
+
+  /*
+    WEAR BALANCE
+  */
+
+  wear =
+    scoreWearBalance(items);
+
+
+  total += wear * 0.12;
+
+
+  /*
+    Small controlled randomness.
+
+    It prevents Fudster from feeling robotic while
+    still keeping strong outfits above weak ones.
+  */
+
+  total +=
+    Math.random() * 2.5;
+
+
+  return {
+
+    total,
+
+    color,
+    style,
+    weather,
+    garment,
+    wear
+
+  };
+
+}
+
+
+/* ============================================================
+   COLOR HARMONY
+============================================================ */
+
+function scoreColorHarmony(items) {
+
+  if (items.length < 2)
+    return 50;
+
+
+  const colors =
+    items
+      .map(i => i.colorFamily)
+      .filter(Boolean);
+
+
+  if (!colors.length)
+    return 45;
+
+
+  let score = 55;
+
+
+  const unique =
+    [...new Set(colors)];
+
+
+  /*
+    Neutral pieces make almost everything easier.
+  */
+
+  const neutralCount =
+    items.filter(i => i.neutral).length;
+
+
+  score +=
+    neutralCount * 5;
+
+
+  /*
+    Earth-tone cohesion is central to Fudd style.
+  */
+
+  const earthCount =
+    items.filter(i => i.earthTone).length;
+
+
+  if (earthCount >= 2)
+    score += 12;
+
+  if (earthCount >= 3)
+    score += 6;
+
+
+  /*
+    Warm earth combinations:
+    rust + olive
+    rust + brown
+    olive + tan
+    brown + cream
+    etc.
+  */
+
+  const pairs = [];
+
+  for (let i = 0; i < items.length; i++) {
+
+    for (let j = i + 1; j < items.length; j++) {
+
+      pairs.push([
+        items[i],
+        items[j]
+      ]);
+
+    }
+
+  }
+
+
+  pairs.forEach(([a, b]) => {
+
+    const x = a.colorFamily;
+    const y = b.colorFamily;
+
+
+    if (x === y) {
+      score += 5;
+      return;
+    }
+
+
+    const compatible =
+      [
+
+        ["rust", "olive"],
+        ["rust", "brown"],
+        ["rust", "tan"],
+        ["rust", "cream"],
+        ["olive", "brown"],
+        ["olive", "tan"],
+        ["olive", "cream"],
+        ["brown", "tan"],
+        ["brown", "cream"],
+        ["tan", "cream"],
+        ["navy", "tan"],
+        ["navy", "brown"],
+        ["navy", "cream"],
+        ["blue", "brown"],
+        ["blue", "tan"],
+        ["blue", "cream"],
+        ["burgundy", "olive"],
+        ["burgundy", "tan"],
+        ["burgundy", "cream"],
+        ["green", "brown"],
+        ["green", "tan"],
+        ["sage", "brown"],
+        ["sage", "tan"]
+
+      ];
+
+
+    if (
+      compatible.some(
+        pair =>
+          (pair[0] === x && pair[1] === y) ||
+          (pair[0] === y && pair[1] === x)
+      )
+    ) {
+
+      score += 7;
+
+    }
+
+
+    /*
+      Warm + cool can work, but too many competing
+      saturated colors should be discouraged.
+    */
+
+    if (
+      a.colorTemperature !== b.colorTemperature &&
+      !a.neutral &&
+      !b.neutral
+    ) {
+
+      score -= 2;
+
+    }
+
+  });
+
+
+  /*
+    Penalize too many loud colors.
+  */
+
+  const loud =
+    items.filter(
+      i =>
+        !i.muted &&
+        !i.neutral &&
+        !i.earthTone
+    ).length;
+
+
+  if (loud >= 3)
+    score -= 12;
+
+  else if (loud === 2)
+    score -= 3;
+
+
+  return clamp(score, 0, 100);
+
+}
+
+
+/* ============================================================
+   FUDD STYLE SCORE
+============================================================ */
+
+function scoreFuddStyle(items) {
+
+  if (!items.length)
+    return 0;
+
+
+  let score = 45;
+
+
+  items.forEach(item => {
+
+    const text =
+      `${item.name} ${item.color}`.toLowerCase();
+
+
+    if (item.styleTags.includes("vintage"))
+      score += 8;
+
+    if (item.styleTags.includes("outdoor"))
+      score += 7;
+
+    if (item.styleTags.includes("workwear"))
+      score += 7;
+
+    if (item.styleTags.includes("heritage"))
+      score += 6;
+
+    if (item.styleTags.includes("rugged"))
+      score += 5;
+
+    if (item.styleTags.includes("classic"))
+      score += 4;
+
+
+    if (
+      item.materials.includes("wool") ||
+      item.materials.includes("flannel") ||
+      item.materials.includes("canvas") ||
+      item.materials.includes("leather") ||
+      item.materials.includes("waxedCotton") ||
+      item.materials.includes("corduroy") ||
+      item.materials.includes("chamois")
+    ) {
+
+      score += 5;
+
+    }
+
+
+    if (item.earthTone)
+      score += 4;
+
+
+    if (item.muted)
+      score += 3;
+
+
+    /*
+      Small penalty for items that strongly fight
+      the desired aesthetic.
+    */
+
+    if (
+      /neon|fluorescent|techwear|futuristic/.test(text)
+    ) {
+
+      score -= 12;
+
+    }
+
+  });
+
+
+  /*
+    Outfit-level bonuses.
+  */
+
+  const hasTexture =
+    items.some(
+      i => i.materials.length > 0
+    );
+
+
+  const hasEarthPalette =
+    items.filter(
+      i => i.earthTone
+    ).length >= 2;
+
+
+  const hasHeritageMix =
+    items.some(
+      i => i.materials.includes("wool") ||
+           i.materials.includes("flannel")
+    )
+    &&
+    items.some(
+      i => i.materials.includes("canvas") ||
+           i.materials.includes("leather") ||
+           i.materials.includes("waxedCotton")
+    );
+
+
+  if (hasTexture)
+    score += 4;
+
+  if (hasEarthPalette)
+    score += 8;
+
+  if (hasHeritageMix)
+    score += 8;
+
+
+  return clamp(
+    score / Math.max(items.length, 1),
+    0,
+    100
+  );
+
+}
+
+
+/* ============================================================
+   WEATHER
+============================================================ */
+
+function scoreWeather(items, conditions) {
+
+  let score = 70;
+
+
+  const averageWarmth =
+    items.reduce(
+      (sum, item) =>
+        sum + (item.warmth || 2),
+      0
+    ) / items.length;
+
+
+  if (conditions.cold) {
+
+    if (averageWarmth >= 3.5)
+      score += 20;
+
+    else if (averageWarmth < 2)
+      score -= 20;
+
+  }
+
+
+  if (conditions.hot) {
+
+    if (averageWarmth <= 2)
+      score += 18;
+
+    else if (averageWarmth >= 4)
+      score -= 18;
+
+  }
+
+
+  if (conditions.wet) {
+
+    const rainProtection =
+      items.reduce(
+        (sum, item) =>
+          sum + (item.rainSuitability || 1),
+        0
+      );
+
+
+    if (rainProtection >= 7)
+      score += 20;
+
+    else if (rainProtection <= 4)
+      score -= 12;
+
+  }
+
+
+  if (conditions.work || conditions.outside) {
+
+    const rugged =
+      items.filter(
+        i =>
+          i.styleTags.includes("workwear") ||
+          i.styleTags.includes("outdoor") ||
+          i.materials.includes("canvas") ||
+          i.materials.includes("leather")
+      ).length;
+
+
+    score +=
+      Math.min(rugged * 5, 15);
+
+  }
+
+
+  return clamp(score, 0, 100);
+
+}
+
+
+/* ============================================================
+   GARMENT COMPATIBILITY
+============================================================ */
+
+function scoreGarmentCompatibility(items) {
+
+  let score = 70;
+
+
+  const hasTop =
+    items.some(i => i.category === "Top");
+
+  const hasBottom =
+    items.some(i => i.category === "Bottom");
+
+  const hasOuter =
+    items.some(i => i.category === "Outerwear");
+
+  const hasShoes =
+    items.some(i => i.category === "Shoes");
+
+
+  if (hasTop && hasBottom)
+    score += 10;
+
+  if (hasShoes)
+    score += 5;
+
+
+  /*
+    Layering makes more sense when textures have
+    different visual weights.
+  */
+
+  if (hasOuter && hasTop) {
+
+    const top =
+      items.find(i => i.category === "Top");
+
+    const outer =
+      items.find(i => i.category === "Outerwear");
+
+
+    if (
+      top &&
+      outer &&
+      outer.warmth >= top.warmth
+    ) {
+
+      score += 8;
+
+    }
+
+  }
+
+
+  /*
+    Avoid excessive heavy layering in mild weather.
+  */
+
+  const heavy =
+    items.filter(
+      i => i.warmth >= 4
+    ).length;
+
+
+  if (heavy >= 3)
+    score -= 12;
+
+
+  return clamp(score, 0, 100);
+
+}
+
+
+/* ============================================================
+   WEAR BALANCE
+============================================================ */
+
+function scoreWearBalance(items) {
+
+  let score = 60;
+
+
+  items.forEach(item => {
+
+    if (item.wears === 0)
+      score += 10;
+
+    else if (item.wears === 1)
+      score += 6;
+
+    else if (item.wears <= 3)
+      score += 2;
+
+
+    /*
+      Recently worn items get a penalty.
+    */
+
+    if (item.lastWorn) {
+
+      const days =
+        (Date.now() - item.lastWorn)
+        / 86400000;
+
+
+      if (days < 2)
+        score -= 12;
+
+      else if (days < 5)
+        score -= 6;
+
+    }
+
+  });
+
+
+  return clamp(
+    score / Math.max(items.length, 1),
+    0,
+    100
+  );
+
+}
+
+
+/* ============================================================
+   ACCESSORIES
+============================================================ */
+
+function scoreAccessory(item, outfit, conditions) {
+
+  let score = 10;
+
+
+  if (item.earthTone)
+    score += 8;
+
+
+  if (item.muted)
+    score += 4;
+
+
+  if (
+    item.styleTags.includes("heritage") ||
+    item.styleTags.includes("outdoor") ||
+    item.styleTags.includes("workwear")
+  ) {
+
+    score += 8;
+
+  }
+
+
+  const colorScore =
+    scoreColorHarmony(
+      [...outfit, item]
+    );
+
+
+  score +=
+    (colorScore - 50) * 0.5;
+
+
+  if (conditions.pop)
+    score += 4;
+
+
+  return score;
+
+}
+
+
+/* ============================================================
+   OUTFIT EXPLANATION
+============================================================ */
+
+function explainOutfit(items, conditions) {
+
+  const reasons = [];
+
+
+  const earth =
+    items.filter(i => i.earthTone).length;
+
+
+  const neutrals =
+    items.filter(i => i.neutral).length;
+
+
+  const muted =
+    items.filter(i => i.muted).length;
+
+
+  const heritageMaterials =
+    items.filter(i =>
+      i.materials.some(m =>
+        [
+          "wool",
+          "flannel",
+          "canvas",
+          "leather",
+          "waxedCotton",
+          "corduroy"
+        ].includes(m)
+      )
+    ).length;
+
+
+  if (earth >= 2) {
+
+    reasons.push(
+      "The colors form a cohesive earth-tone palette rather than competing with each other."
     );
 
   }
 
 
-  function chooseBest(items, conditions) {
+  if (muted >= 2) {
 
-    if (!items.length) return null;
+    reasons.push(
+      "The muted/faded colors reinforce the lived-in vintage character Fudster is aiming for."
+    );
 
-
-    const scored =
-      items.map(item => {
-
-        let score = 0;
-
-        const text =
-          `${item.name} ${item.color}`.toLowerCase();
+  }
 
 
-        /*
-          Weather clues
-        */
+  if (heritageMaterials >= 2) {
 
-        if (conditions.cold) {
+    reasons.push(
+      "The mix of heritage textures gives the outfit a genuine outdoor/workwear feel."
+    );
 
-          if (
-            /wool|heavy|thermal|flannel|fleece|chamois|canvas|insulated|down|parka|coat/.test(text)
-          ) {
-            score += 5;
+  }
+
+
+  if (neutrals >= 1) {
+
+    reasons.push(
+      "A neutral piece helps anchor the stronger colors."
+    );
+
+  }
+
+
+  if (conditions.wet) {
+
+    reasons.push(
+      "The combination favors pieces with useful rain and weather resistance."
+    );
+
+  }
+
+
+  if (conditions.work || conditions.outside) {
+
+    reasons.push(
+      "The outfit leans toward durable, practical pieces suited to being outside."
+    );
+
+  }
+
+
+  if (conditions.cold) {
+
+    reasons.push(
+      "The overall warmth is weighted toward the colder conditions."
+    );
+
+  }
+
+
+  if (conditions.hot) {
+
+    reasons.push(
+      "The outfit avoids unnecessary heavy layering for the warmer conditions."
+    );
+
+  }
+
+
+  if (!reasons.length) {
+
+    reasons.push(
+      "The pieces have a balanced mix of color, function, and Fudd character."
+    );
+
+  }
+
+
+  return reasons.slice(0, 4);
+
+}
+
+
+/* ============================================================
+   RENDER OUTFIT
+============================================================ */
+
+function renderOutfit(outfit, conditions, desc) {
+
+  const box =
+    document.getElementById("suggestions");
+
+
+  if (!outfit.items.length) {
+
+    box.innerHTML = `
+      <div class="card">
+
+        <h2 style="margin-top:0">
+          Not enough pieces yet
+        </h2>
+
+        <p class="small">
+          Keep building your closet. Once Fudster has a few
+          tops, bottoms, shoes, and layers, it can start comparing
+          complete combinations.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  const reasons =
+    explainOutfit(
+      outfit.items,
+      conditions
+    );
+
+
+  const score =
+    Math.round(
+      outfit.score
+    );
+
+
+  box.innerHTML = `
+
+    <div class="card">
+
+      <h2 style="margin-top:0">
+        Today's Fudster Fit
+      </h2>
+
+      <p class="small">
+        Built for ${escapeHTML(desc)}
+      </p>
+
+
+      <div style="margin-top:14px">
+
+        ${
+
+          outfit.items
+            .map(item => `
+
+              <div class="suggestion">
+
+                <div class="outfit-header">
+                  ${escapeHTML(item.category)}
+                </div>
+
+                <div>
+                  ${escapeHTML(item.name)}
+                </div>
+
+                ${
+                  item.color
+                    ? `<span class="badge">
+                        ${escapeHTML(item.color)}
+                       </span>`
+                    : ""
+                }
+
+                ${
+                  item.colorFamily &&
+                  item.colorFamily !== "unknown"
+                    ? `<span class="badge">
+                        ${escapeHTML(item.colorFamily)}
+                       </span>`
+                    : ""
+                }
+
+              </div>
+
+            `)
+            .join("")
+
+        }
+
+      </div>
+
+
+      <div class="style-score">
+
+        <div>
+          <div class="section-label">
+            Fudd fit
+          </div>
+
+          <div class="small">
+            Color + style + function + wear balance
+          </div>
+        </div>
+
+        <div class="style-score-number">
+          ${Math.min(score, 100)}/100
+        </div>
+
+      </div>
+
+
+      <div class="hero-note">
+
+        <strong>Why this works</strong>
+
+        <ul class="why-list">
+
+          ${
+            reasons
+              .map(reason => `
+                <li>${escapeHTML(reason)}</li>
+              `)
+              .join("")
           }
 
+        </ul>
+
+      </div>
+
+
+      <button
+        id="logOutfitButton"
+        style="margin-top:12px"
+      >
+        I Wore This
+      </button>
+
+    </div>
+
+  `;
+
+
+  const logButton =
+    document.getElementById(
+      "logOutfitButton"
+    );
+
+
+  logButton.addEventListener(
+    "click",
+    () => {
+
+      outfit.items.forEach(item => {
+
+        const actual =
+          closet.find(
+            i => i.id === item.id
+          );
+
+
+        if (actual) {
+
+          actual.wears++;
+
+          actual.lastWorn =
+            Date.now();
+
         }
-
-
-        if (conditions.wet) {
-
-          if (
-            /wax|rain|waterproof|rubber|gore|boot|shell/.test(text)
-          ) {
-            score += 5;
-          }
-
-        }
-
-
-        if (conditions.work) {
-
-          if (
-            /canvas|work|boot|leather|denim|carhartt|dickies|field|chore|utility/.test(text)
-          ) {
-            score += 4;
-          }
-
-        }
-
-
-        /*
-          Fudster aesthetic
-        */
-
-        if (
-          /vintage|ll bean|eddie|patagonia|pendleton|filson|carhartt|orvis|wool|flannel|chamois|canvas|camo|field/.test(text)
-        ) {
-          score += 3;
-        }
-
-
-        /*
-          Creative color pop
-        */
-
-        if (
-          /orange|rust|red|yellow|pattern|camo|stripe/.test(text)
-        ) {
-          score += conditions.pop ? 2 : 0;
-        }
-
-
-        /*
-          Give neglected pieces a gentle boost.
-        */
-
-        if (item.wears === 0) {
-          score += 3;
-        } else if (item.wears === 1) {
-          score += 2;
-        }
-
-
-        /*
-          Small randomness prevents the same outfit
-          from appearing every single time.
-        */
-
-        score += Math.random() * 1.5;
-
-
-        return {
-          item,
-          score
-        };
 
       });
 
 
-    scored.sort(
-      (a, b) => b.score - a.score
+      saveCloset();
+
+
+      logButton.textContent =
+        "✓ Outfit Logged";
+
+      logButton.disabled =
+        true;
+
+    }
+  );
+
+
+  /*
+    After the outfit, show what type of item would
+    most improve the closet.
+  */
+
+  const gap =
+    findBestClosetOpportunity(
+      outfit.items,
+      conditions
     );
 
 
-    return scored[0].item;
+  if (gap) {
+
+    box.innerHTML += `
+
+      <div class="card">
+
+        <h2 style="margin-top:0">
+          One Thing That Could Help
+        </h2>
+
+        <div class="suggestion gap-card">
+
+          <strong>
+            ${escapeHTML(gap.title)}
+          </strong>
+
+          <p class="small" style="margin-top:5px">
+            ${escapeHTML(gap.reason)}
+          </p>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+
+/* ============================================================
+   CLOSET GAP ENGINE
+============================================================ */
+
+function findBestClosetOpportunity(outfit, conditions) {
+
+  const categories =
+    new Set(
+      closet.map(
+        i => i.category
+      )
+    );
+
+
+  const opportunities = [];
+
+
+  if (!categories.has("Shoes")) {
+
+    opportunities.push({
+
+      title:
+        "A pair of brown leather boots",
+
+      reason:
+        "They would reinforce the vintage outdoor/workwear direction and give your earth-tone outfits a strong foundation.",
+
+      score: 90
+
+    });
 
   }
 
 
-  /* ---------------------------------
-     SECURITY / DISPLAY HELPER
-  --------------------------------- */
+  if (!categories.has("Outerwear")) {
 
-  function escapeHTML(value) {
+    opportunities.push({
 
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      title:
+        "A faded olive, tan, or brown field jacket",
+
+      reason:
+        "A practical heritage layer would dramatically expand your ability to build Fudd-style outfits.",
+
+      score: 88
+
+    });
 
   }
 
 
-  /* ---------------------------------
-     STARTUP
-  --------------------------------- */
+  const hasWarmTop =
+    closet.some(
+      i =>
+        i.category === "Top" &&
+        (
+          i.colorFamily === "rust" ||
+          i.colorFamily === "brown" ||
+          i.colorFamily === "cream" ||
+          i.colorFamily === "tan"
+        )
+    );
 
-  renderCloset();
-  renderInsights();
+
+  if (!hasWarmTop) {
+
+    opportunities.push({
+
+      title:
+        "A rust, oatmeal, or cream wool sweater",
+
+      reason:
+        "Your wardrobe would benefit from a warm muted top that can bridge olive, denim, brown, and tan pieces.",
+
+      score: 85
+
+    });
+
+  }
+
+
+  const hasOlive =
+    closet.some(
+      i =>
+        i.colorFamily === "olive"
+    );
+
+
+  if (!hasOlive) {
+
+    opportunities.push({
+
+      title:
+        "A pair of faded olive pants",
+
+      reason:
+        "Olive is one of Fudster's most useful bridge colors for rust, brown, tan, cream, denim, and other heritage pieces.",
+
+      score: 82
+
+    });
+
+  }
+
+
+  const hasDenim =
+    closet.some(
+      i =>
+        i.colorFamily === "blue" &&
+        i.category === "Bottom"
+    );
+
+
+  if (!hasDenim) {
+
+    opportunities.push({
+
+      title:
+        "A pair of worn-in denim jeans",
+
+      reason:
+        "Classic denim would give the closet a versatile cool-toned anchor for warmer earth-tone tops and jackets.",
+
+      score: 78
+
+    });
+
+  }
+
+
+  /*
+    Don't constantly recommend shopping.
+    Only show an opportunity when the closet has
+    a meaningful gap.
+  */
+
+  if (!opportunities.length)
+    return null;
+
+
+  opportunities.sort(
+    (a, b) =>
+      b.score - a.score
+  );
+
+
+  return opportunities[0];
+
+}
+
+
+/* ============================================================
+   FIND ITEMS
+============================================================ */
+
+function findItems(category) {
+
+  return closet.filter(
+    item =>
+      item.category === category
+  );
+
+}
+
+
+/* ============================================================
+   CLOSET RENDERING
+============================================================ */
+
+function renderCloset() {
+
+  const list =
+    document.getElementById(
+      "closetList"
+    );
+
+
+  if (!closet.length) {
+
+    list.innerHTML = `
+      <div class="card empty">
+        Your closet is empty.<br>
+        Add a few pieces and Fudster can start styling you.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  const sorted =
+    [...closet].sort(
+      (a, b) =>
+        a.category.localeCompare(
+          b.category
+        )
+    );
+
+
+  list.innerHTML =
+    sorted
+      .map(item => `
+
+        <div class="card item">
+
+          <div class="item-info">
+
+            <div class="item-name">
+              ${escapeHTML(item.name)}
+            </div>
+
+            <div class="item-meta">
+
+              ${escapeHTML(item.category)}
+
+              ${
+                item.color
+                  ? " · " +
+                    escapeHTML(item.color)
+                  : ""
+              }
+
+            </div>
+
+
+            <div>
+
+              ${
+                item.colorFamily &&
+                item.colorFamily !== "unknown"
+                  ? `<span class="badge">
+                      ${escapeHTML(item.colorFamily)}
+                     </span>`
+                  : ""
+              }
+
+              ${
+                item.earthTone
+                  ? `<span class="badge">
+                      earth
+                     </span>`
+                  : ""
+              }
+
+              ${
+                item.styleTags &&
+                item.styleTags.includes("heritage")
+                  ? `<span class="badge">
+                      heritage
+                     </span>`
+                  : ""
+              }
+
+            </div>
+
+
+            <div class="wear-count">
+
+              Worn ${item.wears}
+              time${item.wears === 1 ? "" : "s"}
+
+            </div>
+
+          </div>
+
+
+          <div class="item-actions">
+
+            <button
+              class="secondary"
+              onclick="wearItem(${item.id})"
+            >
+              Wear
+            </button>
+
+            <button
+              class="danger"
+              onclick="deleteItem(${item.id})"
+            >
+              ×
+            </button>
+
+          </div>
+
+        </div>
+
+      `)
+      .join("");
+
+}
+
+
+/* ============================================================
+   INSIGHTS
+============================================================ */
+
+function renderInsights() {
+
+  const itemCount =
+    document.getElementById(
+      "itemCount"
+    );
+
+
+  const totalWears =
+    document.getElementById(
+      "totalWears"
+    );
+
+
+  itemCount.textContent =
+    closet.length;
+
+
+  totalWears.textContent =
+    closet.reduce(
+      (sum, item) =>
+        sum + item.wears,
+      0
+    );
+
+
+  const rarely =
+    [...closet]
+      .filter(
+        i => i.wears <= 1
+      )
+      .sort(
+        (a, b) =>
+          a.wears - b.wears
+      );
+
+
+  const most =
+    [...closet]
+      .sort(
+        (a, b) =>
+          b.wears - a.wears
+      )
+      .slice(0, 5);
+
+
+  document.getElementById(
+    "rarelyWorn"
+  ).innerHTML =
+
+    rarely.length
+
+      ? rarely
+          .map(item => `
+
+            <div class="item">
+
+              <div>
+
+                ${escapeHTML(item.name)}
+
+                <span class="small">
+                  (${item.wears}
+                  wear${item.wears === 1 ? "" : "s"})
+                </span>
+
+              </div>
+
+            </div>
+
+          `)
+          .join("")
+
+      : `
+
+        <p class="small"
+           style="margin-top:10px">
+
+          Nothing rarely worn right now.
+
+        </p>
+
+      `;
+
+
+  document.getElementById(
+    "mostWorn"
+  ).innerHTML =
+
+    most.length
+
+      ? most
+          .map(item => `
+
+            <div class="item">
+
+              <div>
+
+                ${escapeHTML(item.name)}
+
+                <span class="small">
+                  (${item.wears})
+                </span>
+
+              </div>
+
+            </div>
+
+          `)
+          .join("")
+
+      : `
+
+        <p class="small">
+          No wear data yet.
+        </p>
+
+      `;
+
+
+  renderClosetGaps();
+
+}
+
+
+/* ============================================================
+   CLOSET OPPORTUNITIES
+============================================================ */
+
+function renderClosetGaps() {
+
+  const box =
+    document.getElementById(
+      "closetGaps"
+    );
+
+
+  if (!closet.length) {
+
+    box.innerHTML = `
+      <p class="small"
+         style="margin-top:10px">
+        Add some pieces first and Fudster will identify
+        useful gaps.
+      </p>
+    `;
+
+    return;
+
+  }
+
+
+  const fakeConditions = {
+    cold: false,
+    cool: true,
+    hot: false,
+    wet: false,
+    work: false,
+    outside: false,
+    casual: true
+  };
+
+
+  const gap =
+    findBestClosetOpportunity(
+      closet.slice(0, 4),
+      fakeConditions
+    );
+
+
+  box.innerHTML = gap
+
+    ? `
+
+      <div class="suggestion gap-card">
+
+        <strong>
+          ${escapeHTML(gap.title)}
+        </strong>
+
+        <p class="small"
+           style="margin-top:5px">
+
+          ${escapeHTML(gap.reason)}
+
+        </p>
+
+      </div>
+
+    `
+
+    : `
+
+      <p class="small"
+         style="margin-top:10px">
+
+        Your closet has a pretty solid foundation.
+        Keep adding pieces and Fudster will get more specific.
+
+      </p>
+
+    `;
+
+}
+
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function clamp(value, min, max) {
+
+  return Math.max(
+    min,
+    Math.min(max, value)
+  );
+
+}
+
+
+function escapeHTML(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+/* ============================================================
+   STARTUP
+============================================================ */
+
+renderCloset();
+renderInsights();
 
 </script>
 
